@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'python-app/**' # Only trigger if changes are made in the python-app directory
-      - '.github/workflows/docker-build.yml' # Also trigger if the workflow itself changes
+      - '.github/workflows/build-python-app.yml' # Also trigger if the workflow itself changes
   workflow_dispatch:
 
 env:
