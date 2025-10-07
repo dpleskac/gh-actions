@@ -1,0 +1,30 @@
+name: Build and Push Python Hello World Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'python-app/**' # Only trigger if changes are made in the python-app directory
+      - '.github/workflows/docker-build.yml' # Also trigger if the workflow itself changes
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: python-app
+
+jobs:
+  build-and-push:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./python-app
+          push: false # Push the image to the Docker registry
+          tags: "python-app:latest"
+          cache-from: type=gha # Use GitHub Actions cache for faster builds
+          cache-to: type=gha,mode=max
