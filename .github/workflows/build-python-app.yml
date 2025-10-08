@@ -20,9 +20,26 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Build and push Docker image
-        run: |
-          echo "Building Docker image..."
-          echo "Image Name: $IMAGE_NAME"
-          echo "Context: ./python-app"
-          docker build -t $IMAGE_NAME:latest ./python-app
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # The 'cache: true' option enables the GitHub Actions cache backend for Buildx.
+          cache: true
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./python-app # Specify the subdirectory as the build context
+          push: false # CRITICAL: Set to false as we are not logging in or pushing
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest # Manually specify a 'latest' tag
+            ${{ env.IMAGE_NAME }}:${{ github.sha }} # Tag with the full commit SHA
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.created=${{ github.event.repository.pushed_at }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: List built images (for verification)
+        run: docker images
