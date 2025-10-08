@@ -22,8 +22,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          cache: true
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -38,17 +36,19 @@ jobs:
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ github.event.repository.pushed_at }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: List built images (for verification)
         run: docker images
 
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@master # Use the official Trivy action
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: 'table' # Output format (table, json, sarif, etc.)
           severity: 'CRITICAL,HIGH' # Only report critical and high severity vulnerabilities
           exit-code: '1' # Fail the workflow if vulnerabilities of specified severity are found
           ignore-unfixed: true # Only report vulnerabilities with a fix available
+
+      - name: Run the application container to verify it works
+        run: docker run -ti --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
