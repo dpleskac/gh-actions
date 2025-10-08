@@ -32,8 +32,8 @@ jobs:
           context: ./python-app # Specify the subdirectory as the build context
           push: false # CRITICAL: Set to false as we are not logging in or pushing
           tags: |
-            ${{ env.IMAGE_NAME }}:latest # Manually specify a 'latest' tag
-            ${{ env.IMAGE_NAME }}:${{ github.sha }} # Tag with the full commit SHA
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ github.event.repository.pushed_at }}
