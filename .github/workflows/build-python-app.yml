@@ -50,5 +50,5 @@ jobs:
           ignore-unfixed: true # Only report vulnerabilities with a fix available
 
       - name: Run the application container to verify it works
-        run: docker run -ti --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
+        run: docker run --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
