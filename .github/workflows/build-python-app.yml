@@ -43,3 +43,12 @@ jobs:
 
       - name: List built images (for verification)
         run: docker images
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master # Use the official Trivy action
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'table' # Output format (table, json, sarif, etc.)
+          severity: 'CRITICAL,HIGH' # Only report critical and high severity vulnerabilities
+          exit-code: '1' # Fail the workflow if vulnerabilities of specified severity are found
+          ignore-unfixed: true # Only report vulnerabilities with a fix available
