@@ -11,14 +11,34 @@ on:
 
 env:
   IMAGE_NAME: python-app
+  IMAGE_TAG: ${{ github.sha }}
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 461491260158.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: gh-actions-test/python
+  AWS_ROLE_ARN: arn:aws:iam::461491260158:role/gh-actions-ecr
 
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-ECR-Push
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to base image ECR (delivery account)
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -31,7 +51,7 @@ jobs:
           load: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ github.event.repository.pushed_at }}
@@ -43,12 +63,17 @@ jobs:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: 'table' # Output format (table, json, sarif, etc.)
           severity: 'CRITICAL,HIGH' # Only report critical and high severity vulnerabilities
           exit-code: '1' # Fail the workflow if vulnerabilities of specified severity are found
           ignore-unfixed: true # Only report vulnerabilities with a fix available
 
+      - name: Push EKS Docker image to ECR
+        run: |
+          # Push EKS images
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+         
       - name: Run the application container to verify it works
         run: docker run --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
