@@ -75,8 +75,8 @@ jobs:
 
       - name: Push EKS Docker image to ECR
         run: |
-          # Push EKS images
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
          
       - name: Run the application container to verify it works
         run: docker run --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
