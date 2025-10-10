@@ -70,11 +70,12 @@ jobs:
           exit-code: '1' # Fail the workflow if vulnerabilities of specified severity are found
           ignore-unfixed: true # Only report vulnerabilities with a fix available
 
-      - name: Push EKS Docker image to ECR
+      - name: Run the application container to verify it works
+        run: docker run --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Push docker image to ECR
         run: |
           docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
          
-      - name: Run the application container to verify it works
-        run: docker run --rm ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
