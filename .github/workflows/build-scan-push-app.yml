@@ -11,7 +11,7 @@ on:
 
 jobs:
   call-build-and-push:
-    uses: ./.github/workflows/docker-build-scan-push.yml@main
+    uses: dpleskac/gh-actions/.github/workflows/docker-build-scan-push.yml@main
     with:
       app_name: python-app
       app_directory: python-app
