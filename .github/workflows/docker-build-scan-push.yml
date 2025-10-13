@@ -1,0 +1,148 @@
+# This is a reusable workflow template for building, scanning, and pushing a Docker image to AWS ECR.
+# It is designed to be called from other workflows in the same or different repositories.
+
+name: Build, Scan, Push Docker Image to ECR
+
+on:
+  workflow_call:
+    # Define the inputs that the calling workflow must provide
+    inputs:
+      app_name:
+        description: 'Name of the application (e.g., my-python-app), used for local image tagging and logging.'
+        required: true
+        type: string
+      app_directory:
+        description: 'Relative path to the application directory containing the Dockerfile (e.g., python-app, src/my-service).'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region where ECR repository is located (e.g., us-east-1).'
+        required: true
+        type: string
+      aws_account_id:
+        description: 'Your 12-digit AWS account ID.'
+        required: true
+        type: string
+      ecr_repository:
+        description: 'The full ECR repository path (e.g., my-org/my-app, gh-actions-test/python).'
+        required: true
+        type: string
+      aws_role_arn:
+        description: 'ARN of the IAM role to assume for AWS authentication via OIDC.'
+        required: true
+        type: string
+      image_tag:
+        description: 'Docker image tag to use. Defaults to the GitHub SHA of the calling workflow.'
+        required: false
+        type: string
+        default: ${{ github.sha }} # Uses the SHA of the *calling* workflow
+      runner_type:
+        description: 'Type of runner to use (e.g., ubuntu-latest or self-hosted).'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      trivy_severity:
+        description: 'Trivy severity levels to report (e.g., CRITICAL,HIGH).'
+        required: false
+        type: string
+        default: 'CRITICAL,HIGH'
+      trivy_exit_code:
+        description: 'Trivy exit code for failing the workflow if vulnerabilities are found.'
+        required: false
+        type: string
+        default: '1'
+      trivy_ignore_unfixed:
+        description: 'Trivy ignore unfixed vulnerabilities (true or false).'
+        required: false
+        type: boolean
+        default: true
+      verify_app_command:
+        description: 'Optional shell command to run the built Docker image for basic verification.'
+        required: false
+        type: string
+        default: ''
+
+    # Define outputs that this workflow can pass back to the calling workflow
+    outputs:
+      ecr_image_uri:
+        description: "The full ECR URI of the pushed Docker image."
+        value: ${{ jobs.build-scan-and-push.outputs.ecr_image_uri }}
+
+jobs:
+  build-scan-and-push:
+    name: Build, Scan, and Push Docker Image
+    runs-on: ${{ inputs.runner_type }}
+
+    # Permissions required for OIDC authentication with AWS
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC authentication to AWS
+
+    # Define job outputs that can be passed to the workflow outputs
+    outputs:
+      ecr_image_uri: ${{ steps.push-to-ecr.outputs.ecr_image_uri }}
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        # No 'registries' input needed; it automatically logs into ECR for the configured AWS account/region.
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ inputs.app_directory }} # Build context points to your application directory
+          push: false # We build and load, then push in a separate step
+          load: true # Load the image into Docker daemon for subsequent steps (e.g., Trivy, docker run)
+          tags: |
+            ${{ inputs.app_name }}:latest
+            ${{ inputs.app_name }}:${{ inputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.created=${{ github.event.repository.pushed_at }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: List built images (for verification)
+        run: docker images
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.app_name }}:${{ inputs.image_tag }}
+          format: 'table'
+          severity: ${{ inputs.trivy_severity }}
+          exit-code: ${{ inputs.trivy_exit_code }}
+          ignore-unfixed: ${{ inputs.trivy_ignore_unfixed }}
+
+      - name: Run the application container to verify it works (Optional)
+        # This step only runs if 'verify_app_command' input is provided.
+        if: inputs.verify_app_command != ''
+        run: |
+          echo "Attempting to run ${{ inputs.app_name }}:${{ inputs.image_tag }} for basic verification using command: ${{ inputs.verify_app_command }}"
+          docker run --rm ${{ inputs.app_name }}:${{ inputs.image_tag }} ${{ inputs.verify_app_command }}
+          echo "Application container verification command executed."
+        continue-on-error: true # Set to 'false' if this verification is critical for your pipeline
+
+      - name: Push Docker image to ECR
+        id: push-to-ecr # Add an ID to this step to capture its output
+        run: |
+          ECR_FULL_URI="${{ inputs.aws_account_id }}.dkr.ecr.${{ inputs.aws_region }}.amazonaws.com/${{ inputs.ecr_repository }}:${{ inputs.image_tag }}"
+          echo "Tagging image for ECR: $ECR_FULL_URI"
+          docker tag ${{ inputs.app_name }}:${{ inputs.image_tag }} "$ECR_FULL_URI"
+          echo "Pushing image to ECR..."
+          docker push "$ECR_FULL_URI"
+          echo "Image pushed successfully to ECR."
+          echo "ecr_image_uri=$ECR_FULL_URI" >> "$GITHUB_OUTPUT" # Set output for the step
+
