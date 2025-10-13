@@ -38,10 +38,10 @@ jobs:
       image_uri: ${{ jobs.call-build-and-push.outputs.ecr_image_uri }}
 
   # Example of a subsequent job that uses the output
-  deploy:
-    needs: call-build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print ECR Image URI
-        run: echo "Image built and pushed to: ${{ needs.call-build-and-push.outputs.image_uri }}"
-      # Add your deployment steps here, using the image_uri output
+#  deploy:
+#    needs: call-build-and-push
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Print ECR Image URI
+#        run: echo "Image built and pushed to: ${{ needs.call-build-and-push.outputs.image_uri }}"
+#      # Add your deployment steps here, using the image_uri output
