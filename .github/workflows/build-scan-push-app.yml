@@ -9,23 +9,16 @@ on:
       - '.github/workflows/build-scan-push-app.yml'
   workflow_dispatch:
 
-env:
-  # Define common environment variables for this application
-  AWS_REGION: "us-east-1"
-  AWS_ACCOUNT_ID: "461491260158"
-  ECR_REPOSITORY: "gh-actions-test/python-app"
-  AWS_ROLE_ARN: "arn:aws:iam::461491260158:role/gh-actions-ecr"
-
 jobs:
   call-build-and-push:
     uses: cisco-sbg/tdr-pp-gh-actions/.github/workflows/docker-build-scan-push.yml@main
     with:
       app_name: python-app
       app_directory: python-app
-      aws_region: ${{ env.AWS_REGION }}
-      aws_account_id: ${{ env.AWS_ACCOUNT_ID }}
-      ecr_repository: ${{ env.ECR_REPOSITORY }}
-      aws_role_arn: ${{ env.AWS_ROLE_ARN }}
+      aws_region: "us-east-1"
+      aws_account_id: "461491260158"
+      ecr_repository: "gh-actions-test/python-app"
+      aws_role_arn: "arn:aws:iam::461491260158:role/gh-actions-ecr"
       # Optional inputs:
       # image_tag: ${{ github.sha }} # Default is already github.sha
       runner_type: 'self-hosted' # Default is ubuntu-latest
