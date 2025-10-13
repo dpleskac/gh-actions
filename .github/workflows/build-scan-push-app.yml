@@ -1,0 +1,47 @@
+name: App Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'python-app/**' # Trigger when changes in your app folder
+      - '.github/workflows/build-scan-push-app.yml'
+  workflow_dispatch:
+
+env:
+  # Define common environment variables for this application
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 461491260158
+  ECR_REPOSITORY: gh-actions-test/python-app
+  AWS_ROLE_ARN: arn:aws:iam::461491260158:role/gh-actions-ecr
+
+jobs:
+  call-build-and-push:
+    uses: cisco-sbg/tdr-pp-gh-actions/.github/workflows/docker-build-scan-push.yml@main
+    with:
+      app_name: python-app
+      app_directory: python-app
+      aws_region: ${{ env.AWS_REGION }}
+      aws_account_id: ${{ env.AWS_ACCOUNT_ID }}
+      ecr_repository: ${{ env.ECR_REPOSITORY }}
+      aws_role_arn: ${{ env.AWS_ROLE_ARN }}
+      # Optional inputs:
+      # image_tag: ${{ github.sha }} # Default is already github.sha
+      runner_type: 'self-hosted' # Default is ubuntu-latest
+      # trivy_severity: 'CRITICAL,HIGH'
+      # trivy_exit_code: '1'
+      # trivy_ignore_unfixed: true
+      verify_app_command: 'sh -c "echo Hello from container!"' # Example verification command
+
+    outputs:
+      image_uri: ${{ jobs.call-build-and-push.outputs.ecr_image_uri }}
+
+  # Example of a subsequent job that uses the output
+  deploy:
+    needs: call-build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print ECR Image URI
+        run: echo "Image built and pushed to: ${{ needs.call-build-and-push.outputs.image_uri }}"
+      # Add your deployment steps here, using the image_uri output
