@@ -32,10 +32,10 @@ jobs:
       # trivy_severity: 'CRITICAL,HIGH'
       # trivy_exit_code: '1'
       # trivy_ignore_unfixed: true
-      verify_app_command: 'sh -c "echo Hello from container!"' # Example verification command
+#      verify_app_command: 'sh -c "echo Hello from container!"' # Example verification command
 
-    outputs:
-      image_uri: ${{ jobs.call-build-and-push.outputs.ecr_image_uri }}
+#    outputs:
+#      image_uri: ${{ jobs.call-build-and-push.outputs.ecr_image_uri }}
 
   # Example of a subsequent job that uses the output
 #  deploy:
