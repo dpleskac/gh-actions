@@ -12,7 +12,7 @@ on:
 env:
   # Define common environment variables for this application
   AWS_REGION: us-east-1
-  AWS_ACCOUNT_ID: 461491260158
+  AWS_ACCOUNT_ID: "461491260158"
   ECR_REPOSITORY: gh-actions-test/python-app
   AWS_ROLE_ARN: arn:aws:iam::461491260158:role/gh-actions-ecr
 
