@@ -15,7 +15,7 @@ env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: 461491260158.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: gh-actions-test/python
-  AWS_ROLE_ARN: arn:aws:iam::461491260158:role/gh-actions-ecr
+  AWS_ROLE_ARN: arn:aws:iam::461491260158:role/gh-actions-ecr-rw
 
 jobs:
   build-and-push:
